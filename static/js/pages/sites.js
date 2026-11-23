@@ -8,11 +8,31 @@ export async function renderSites(el) {
   ]);
   const items = data.items || [];
   const activeProto = (protocols.items || []).find((p) => p.status === '生效');
+  const cut = data.proto_cut || {};
+  const cutChipCls = cut.aligned ? 'ok' : 'bad';
+  const cutBanner = `
+    <div class="detail-box" id="cutBanner" style="margin:8px 0">
+      <span class="chip ${cutChipCls}">${escapeHtml(cut.chip || '协议版旧')}</span>
+      <span class="chip ${activeProto ? 'warn' : 'idle'}">协议版号：${
+        activeProto ? escapeHtml(activeProto.protocol_code + ' @ ' + activeProto.version) : '无生效方案'
+      }</span>
+      <span class="muted">读轨 ${escapeHtml(cut.active_read || 'old_track')} · 指纹 ${
+        escapeHtml(cut.cutover_fp || '空（未钉定）')
+      } · 拒回刷 ${cut.reject_refresh ? '是' : '否'}</span>
+      ${
+        cut.aligned
+          ? '<span class="chip ok">已钉定：读轨只认物化包，旧协议抓取已放行</span>'
+          : '<button id="pinCutover" type="button" class="warn">钉定协议切流（甲路物化包）</button>'
+      }
+      <span id="cutMsg" class="err"></span>
+    </div>`;
 
   el.innerHTML = `
     <div class="card">
-      <h2><span class="chip" data-thick="proto_cut">切流已亮</span> 试验中心目录</h2>
+      <h2>试验中心目录</h2>
       <p class="muted">登记临床试验中心、启停状态与访视抓取配额。停用前须先结束采集中批次。</p>
+      ${cutBanner}
+      <p class="muted">切流未钉定前，访视批次的模拟抓取会被驳回（409），徽标仅由业务库落点行驱动。</p>
       <div class="grid">
         <div class="stat"><div class="n">${counts.total || 0}</div><div class="l">中心总数</div></div>
         <div class="stat"><div class="n">${counts['启用'] || 0}</div><div class="l">启用</div></div>
@@ -106,6 +126,26 @@ export async function renderSites(el) {
     const box = el.querySelector('#siteDetail');
     box.textContent = '错误：' + msg;
   };
+
+  const pinBtn = el.querySelector('#pinCutover');
+  if (pinBtn) {
+    pinBtn.onclick = async () => {
+      const msg = el.querySelector('#cutMsg');
+      msg.textContent = '';
+      try {
+        const r = await api('/api/proto_cut/cutover', {
+          method: 'POST',
+          body: JSON.stringify({ ref_id: 1, note: '中心列表页钉定切流' }),
+        });
+        msg.className = 'muted';
+        msg.textContent = `已落定：读轨 ${r.active_read}，指纹 ${r.cutover_fp}`;
+        await renderSites(el);
+      } catch (e) {
+        msg.className = 'err';
+        msg.textContent = e.message;
+      }
+    };
+  }
 
   el.querySelector('#create').onclick = async () => {
     try {

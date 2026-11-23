@@ -1,9 +1,8 @@
-"""协议切流读轨审计：汇总切流账册与双写两轨两侧引用。"""
+"""协议切流读轨审计：只保留甲路（切流账册）单侧引用，乙路已拆除。"""
 from __future__ import annotations
 
 from app.db import get_db
 from app.services.proto_cut_cutover import board as cutover_board
-from app.services.proto_cut_dualwrite import dual_board, half_dual
 
 
 def audit_list(db_path: str | None = None) -> list[dict]:
@@ -20,6 +19,4 @@ def audit_summary(db_path: str | None = None) -> dict:
         "title": "协议切流审计",
         "events": audit_list(db_path),
         "cutover": cutover_board(db_path),
-        "dualwrite": dual_board(db_path),
-        "half": half_dual(db_path),
     }

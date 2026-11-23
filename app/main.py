@@ -17,7 +17,6 @@ from app.services import reconcile as reconcile_svc
 from app.services import settings as settings_svc
 from app.services import proto_cut as proto_cut_svc
 from app.services import proto_cut_cutover as proto_cut_cutover_svc
-from app.services import proto_cut_dualwrite as proto_cut_dual_svc
 from app.services import sites as sites_svc
 from app.services import visits as visits_svc
 from app.services.errors import ServiceError
@@ -172,7 +171,12 @@ class Api:
         if site_id is None:
             if method == "GET":
                 status = q.get("status")
-                return _json({"items": sites_svc.list_sites(status=status)})
+                return _json(
+                    {
+                        "items": sites_svc.list_sites(status=status),
+                        "proto_cut": proto_cut_svc.dashboard(),
+                    }
+                )
             if method == "POST":
                 body = _read_json()
                 return _json(
@@ -482,13 +486,6 @@ class Api:
 
     @cherrypy.expose
     @_wrap
-    def proto_cut_dual(self):
-        _require()
-        body = _read_json()
-        return _json(proto_cut_dual_svc.apply_dualwrite(str(body.get("note") or "切流钉定")))
-
-    @cherrypy.expose
-    @_wrap
     def audits(self):
         _require()
         q = _query()
@@ -583,8 +580,6 @@ class ApiMount:
                 return api.proto_cut_snap()
             if action == "cutover":
                 return api.proto_cut_cutover()
-            if action == "dual":
-                return api.proto_cut_dual()
             return _json({"error": "未知切流钉定路由"}, 404)
 
         return _json({"error": f"未知接口 {path}"}, 404)

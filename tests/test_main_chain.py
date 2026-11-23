@@ -1,4 +1,6 @@
-from app.services import backfill, qc, reconcile, visits
+from app.services import backfill, proto_cut, proto_cut_cutover, qc, reconcile, visits
+from app.services.errors import ServiceError
+import pytest
 
 
 def test_qc_backfill_reconcile_chain(db_path):
@@ -33,9 +35,22 @@ def test_mock_crawl_and_ingest(db_path):
     batches = visits.list_batches(db_path)
     batch = next(b for b in batches if b["status"] == "采集中")
     before = visits.get_batch(batch["id"], db_path)["item_count"]
+    # 协议切流钉定后抓取管道才放行
+    proto_cut_cutover.append_cutover(1, "主链测试钉定", db_path=db_path)
     crawled = visits.mock_crawl(batch["id"], count=3, mix_bad=True, db_path=db_path)
     assert crawled["created"] == 3
     after = visits.get_batch(batch["id"], db_path)
     assert after["item_count"] >= before + 3
     ingested = visits.ingest_ok_rows(batch["id"], db_path=db_path)
     assert ingested["ingested"] >= 0
+
+
+def test_crawl_rejected_before_cutover_landing(db_path):
+    """主链门控：未钉定协议切流时，抓取不得交卷，业务库行数不变。"""
+    batch = next(b for b in visits.list_batches(db_path) if b["status"] == "采集中")
+    before = visits.get_batch(batch["id"], db_path)["item_count"]
+    with pytest.raises(ServiceError) as exc:
+        visits.mock_crawl(batch["id"], count=2, db_path=db_path)
+    assert exc.value.status_code == 409
+    assert visits.get_batch(batch["id"], db_path)["item_count"] == before
+    assert proto_cut.gate_allows_pipeline(db_path) is False

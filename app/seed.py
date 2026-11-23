@@ -222,7 +222,7 @@ def seed_if_needed(db_path: str | None = None) -> None:
         )
         try:
             from app.services.proto_cut import seed_skew
-            seed_skew(db_path)
+            seed_skew(str(path))
         except Exception:
             pass
         _meta_set(conn, "seeded", "1")

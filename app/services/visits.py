@@ -276,6 +276,11 @@ def mock_crawl(
     mix_bad: bool = True,
     db_path: str | None = None,
 ) -> dict:
+    # 管道门控：协议切流落点行不存在时，旧协议抓取一律驳回（不得交卷/收签/验收）
+    from app.services.proto_cut import gate_allows_pipeline
+
+    if not gate_allows_pipeline(db_path):
+        raise ServiceError("协议切流落点行缺失，旧协议抓取禁止放行", 409)
     count = max(1, min(30, int(count or 5)))
     created = []
     with get_db(db_path) as conn:

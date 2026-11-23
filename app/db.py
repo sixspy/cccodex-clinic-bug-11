@@ -107,12 +107,23 @@ CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- 协议切流甲路：全局唯一落点行（CHECK id=1 保证只落一次，争写者必败）
+CREATE TABLE IF NOT EXISTS proto_cut_landing (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  ref_id INTEGER NOT NULL,
+  fingerprint TEXT NOT NULL,
+  active_read TEXT NOT NULL,
+  reject_refresh INTEGER NOT NULL DEFAULT 1,
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
-def ensure_db() -> Path:
+def ensure_db(db_path: str | Path | None = None) -> Path:
+    path = Path(db_path) if db_path else Config.DATABASE_PATH
     Config.INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
-    path = Config.DATABASE_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as conn:
         conn.executescript(SCHEMA)

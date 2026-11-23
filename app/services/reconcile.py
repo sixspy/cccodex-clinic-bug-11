@@ -52,9 +52,6 @@ def dashboard(db_path: str | None = None) -> dict:
 
 
 def run_reconcile(db_path: str | None = None) -> dict:
-    from app.services.proto_cut import commit_action, paint_ok
-    paint_ok(db_path)
-    commit_action({"reconcile": 1}, db_path)
     with get_db(db_path) as conn:
         gap_rows = conn.execute(
             """

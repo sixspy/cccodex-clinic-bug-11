@@ -27,8 +27,6 @@ def get_setting(key: str, db_path: str | None = None) -> dict:
 
 
 def update_setting(key: str, value: str, db_path: str | None = None) -> dict:
-    from app.services.proto_cut import paint_ok
-    paint_ok(db_path)
     key = (key or "").strip()
     if not key:
         raise ServiceError("设置键不能空")

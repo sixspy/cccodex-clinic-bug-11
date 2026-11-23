@@ -66,36 +66,11 @@ export async function renderSettings(el) {
   try {
     const dash = await api('/api/proto_cut/dash');
     el.innerHTML += `<div class="card" style="margin-top:1rem">
-      <h3>切流钉定</h3>
-      <span class="chip">${dash.chip}</span>
-      <p class="muted">读轨 ${dash.active_read} · 切流指纹 ${dash.cutover_fp || '空'} · 拒回刷 ${dash.reject_refresh} · 归档 ${dash.archive_count} · 新旗 ${dash.live_flag || '空'} · 对齐差 ${dash.panel_pack_mismatch}</p>
-      <div class="row">
-        <button id="go_proto_cut" type="button">落台</button>
-        <button id="half_proto_cut" type="button">半修对齐</button>
-        <button id="cut_proto_cut" type="button">切流账册</button>
-        <button id="dual_proto_cut" type="button">双写两轨</button>
-      </div>
+      <h3>切流钉定（只读复核）</h3>
+      <span class="chip ${dash.aligned ? 'ok' : 'bad'}">${escapeHtml(dash.chip)}</span>
+      <p class="muted">读轨 ${escapeHtml(dash.active_read)} · 切流指纹 ${escapeHtml(dash.cutover_fp || '空（未钉定）')} · 拒回刷 ${dash.reject_refresh ? '是' : '否'} · 对齐 ${dash.aligned ? '是' : '否'}</p>
+      <p class="muted">钉定操作已迁至「试验中心」页；本页仅复核，落定唯一、拒回刷，无第二落点。</p>
     </div>`;
-    const go = el.querySelector('#go_proto_cut');
-    if (go) go.onclick = async () => {
-      await api('/api/proto_cut/commit', { method:'POST', body: JSON.stringify({ref:1}) });
-      await renderSettings(el);
-    };
-    const half = el.querySelector('#half_proto_cut');
-    if (half) half.onclick = async () => {
-      await api('/api/proto_cut/half', { method:'POST', body:'{}' });
-      await renderSettings(el);
-    };
-    const cut = el.querySelector('#cut_proto_cut');
-    if (cut) cut.onclick = async () => {
-      await api('/api/proto_cut/cutover', { method:'POST', body: JSON.stringify({ref_id:1, note:'协议切流'}) });
-      await renderSettings(el);
-    };
-    const dual = el.querySelector('#dual_proto_cut');
-    if (dual) dual.onclick = async () => {
-      await api('/api/proto_cut/dual', { method:'POST', body: JSON.stringify({note:'协议切流'}) });
-      await renderSettings(el);
-    };
   } catch (e) { /* optional surface */ }
 
 }
